@@ -324,6 +324,42 @@ subroutine get_atm_dispersion_derivs(mol, trans, cutoff, s9, rs9, alp, rvdw, c6,
 
 end subroutine get_atm_dispersion_derivs
 
+subroutine print_values_wp(arr, name, last, unit)
+   real(wp), intent(in) :: arr(:, :)
+   INTEGER :: unit
+   Character(*) :: name
+   integer :: i, j, last, length = 0
+   Character(len=12) :: field
+
+
+   field = ' "'//name//'": ['
+   length = SIZE(arr, (1))
+
+   write(unit, *) field
+   do i = 1, length
+        write(unit, *) "["
+        do j = 1, length
+           if (j == length) then
+               write(unit, *) arr(j, i)
+            else
+               write(unit, *) arr(j, i), ","
+            end if
+        end do
+        if (i == length) then
+            write(unit, *) "]"
+        else
+            write(unit, *) "],"
+        end if
+   end do
+   if (last == 0) then
+        write(unit, *) "],"
+    else
+        write(unit, *) "]"
+    end if
+   ! close(90)
+
+end subroutine print_values_wp
+
 
 !> Evaluation of the dispersion energy expression
 subroutine get_atm_pairwise_dispersion(mol, trans, cutoff, s9, rs9, alp, rvdw, c6, &
@@ -355,6 +391,9 @@ subroutine get_atm_pairwise_dispersion(mol, trans, cutoff, s9, rs9, alp, rvdw, c
 
    !> Dispersion energy
    real(wp), intent(inout) :: energy(:, :)
+   real(wp), DIMENSION(:, :), ALLOCATABLE :: c8s
+   real(wp), DIMENSION(:, :), ALLOCATABLE :: r0s
+   real(wp), DIMENSION(:, :), ALLOCATABLE :: rs
 
    integer :: iat, jat, kat, izp, jzp, kzp, jtr, ktr
    real(wp) :: vij(3), vjk(3), vik(3), r2ij, r2jk, r2ik, c6ij, c6jk, c6ik, triple
@@ -363,6 +402,12 @@ subroutine get_atm_pairwise_dispersion(mol, trans, cutoff, s9, rs9, alp, rvdw, c
 
    if (abs(s9) < epsilon(1.0_wp)) return
    cutoff2 = cutoff*cutoff
+
+   total = SIZE(c6, 1)
+   print *, 'total', total
+   ALLOCATE (c8(total, total))
+   ALLOCATE (rs(total, total))
+   ALLOCATE (r0s(total, total))
 
    !$omp parallel do schedule(runtime) default(none) shared(energy) &
    !$omp shared(mol, trans, c6, cutoff2, s9, rs9, alp, rvdw) &
@@ -425,6 +470,20 @@ subroutine get_atm_pairwise_dispersion(mol, trans, cutoff, s9, rs9, alp, rvdw, c
          end do
       end do
    end do
+
+   ! INQUIRE(file="d3data.json", EXIST=file_exists)
+   ! if (file_exists) then
+   !      open (unit= 92, file="d3data.json", status="old")
+   !      close (92, status="delete")
+   !  end if
+   ! open (unit = 92, file = "d3data.json", status="new")
+   ! write(92, *) "{"
+   ! call print_values_wp(c6, 'c6s', 1, 92)
+   ! call print_values_wp(c8, 'c8s', 1, 92)
+   ! call print_values_wp(r0s, 'r0s', 1, 92)
+   ! call print_values_wp(rs, 'rs', 1, 92)
+   ! write(92, *) "}"
+   ! close(92)
 
 end subroutine get_atm_pairwise_dispersion
 
