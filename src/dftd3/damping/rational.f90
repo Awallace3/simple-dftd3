@@ -414,8 +414,8 @@ subroutine get_pairwise_dispersion2(self, mol, trans, cutoff, rvdw, r4r2, c6, en
    ALLOCATE (r0s(total, total))
 
    !$omp parallel do schedule(runtime) default(none) shared(energy) &
-   !$omp shared(mol, self, c6, trans, cutoff2, r4r2) private(iat, jat, izp, jzp, &
-   !$omp& jtr, vec, r2, r0ij, rrij, c6ij, t6, t8, edisp, dE, c8s, rs, r0s)
+   !$omp shared(mol, self, c6, trans, cutoff2, r4r2, c8s, rs, r0s) private(iat, jat, izp, jzp, &
+   !$omp& jtr, vec, r2, r0ij, rrij, c6ij, t6, t8, edisp, dE)
    do iat = 1, mol%nat
       izp = mol%id(iat)
       do jat = 1, iat
@@ -448,6 +448,10 @@ subroutine get_pairwise_dispersion2(self, mol, trans, cutoff, rvdw, r4r2, c6, en
          end do
       end do
    end do
+
+   ! print *, 'c8s'
+   print *, c8s
+
    INQUIRE(file="d3data.json", EXIST=file_exists)
    if (file_exists) then
         open (unit= 92, file="d3data.json", status="old")
@@ -456,8 +460,11 @@ subroutine get_pairwise_dispersion2(self, mol, trans, cutoff, rvdw, r4r2, c6, en
    open (unit = 92, file = "d3data.json", status="new")
    write(92, *) "{"
    call print_values_wp(c6, 'c6s', 1, 92)
+   write(92, *) ","
    call print_values_wp(c8s, 'c8s', 1, 92)
+   write(92, *) ","
    call print_values_wp(r0s, 'r0s', 1, 92)
+   write(92, *) ","
    call print_values_wp(rs, 'rs', 1, 92)
    write(92, *) "}"
    close(92)
