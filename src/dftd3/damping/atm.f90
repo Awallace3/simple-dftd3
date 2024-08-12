@@ -395,7 +395,7 @@ subroutine get_atm_pairwise_dispersion(mol, trans, cutoff, s9, rs9, alp, rvdw, c
    real(wp), DIMENSION(:, :), ALLOCATABLE :: r0s
    real(wp), DIMENSION(:, :), ALLOCATABLE :: rs
 
-   integer :: iat, jat, kat, izp, jzp, kzp, jtr, ktr
+   integer :: iat, jat, kat, izp, jzp, kzp, jtr, ktr, total
    real(wp) :: vij(3), vjk(3), vik(3), r2ij, r2jk, r2ik, c6ij, c6jk, c6ik, triple
    real(wp) :: r0ij, r0jk, r0ik, r0, r1, r2, r3, r5, rr, fdmp, ang
    real(wp) :: cutoff2, c9, dE
@@ -405,7 +405,7 @@ subroutine get_atm_pairwise_dispersion(mol, trans, cutoff, s9, rs9, alp, rvdw, c
 
    total = SIZE(c6, 1)
    print *, 'total', total
-   ALLOCATE (c8(total, total))
+   ALLOCATE (c8s(total, total))
    ALLOCATE (rs(total, total))
    ALLOCATE (r0s(total, total))
 

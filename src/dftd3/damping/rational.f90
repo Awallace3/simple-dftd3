@@ -74,6 +74,41 @@ subroutine new_rational_damping(self, param)
 
 end subroutine new_rational_damping
 
+subroutine print_values_wp(arr, name, last, unit)
+   real(wp), intent(in) :: arr(:, :)
+   INTEGER :: unit
+   Character(*) :: name
+   integer :: i, j, last, length = 0
+   Character(len=12) :: field
+
+
+   field = ' "'//name//'": ['
+   length = SIZE(arr, (1))
+
+   write(unit, *) field
+   do i = 1, length
+        write(unit, *) "["
+        do j = 1, length
+           if (j == length) then
+               write(unit, *) arr(j, i)
+            else
+               write(unit, *) arr(j, i), ","
+            end if
+        end do
+        if (i == length) then
+            write(unit, *) "]"
+        else
+            write(unit, *) "],"
+        end if
+   end do
+   if (last == 0) then
+        write(unit, *) "],"
+    else
+        write(unit, *) "]"
+    end if
+   ! close(90)
+
+end subroutine print_values_wp
 
 !> Evaluation of the dispersion energy expression
 subroutine get_dispersion2(self, mol, trans, cutoff, rvdw, r4r2, c6, dc6dcn, &
@@ -361,15 +396,26 @@ subroutine get_pairwise_dispersion2(self, mol, trans, cutoff, rvdw, r4r2, c6, en
 
    !> Dispersion energy
    real(wp), intent(inout) :: energy(:, :)
+   real(wp), DIMENSION(:, :), ALLOCATABLE :: c8s
+   real(wp), DIMENSION(:, :), ALLOCATABLE :: r0s
+   real(wp), DIMENSION(:, :), ALLOCATABLE :: rs
 
-   integer :: iat, jat, izp, jzp, jtr
+   integer :: iat, jat, izp, jzp, jtr, total
    real(wp) :: vec(3), r2, cutoff2, r0ij, rrij, c6ij, t6, t8, edisp, dE
+   logical :: file_exists
+
 
    cutoff2 = cutoff*cutoff
+    print *, 'get_pairwise_dispersion2'
+   total = SIZE(c6, 1)
+   print *, 'total', total
+   ALLOCATE (c8s(total, total))
+   ALLOCATE (rs(total, total))
+   ALLOCATE (r0s(total, total))
 
    !$omp parallel do schedule(runtime) default(none) shared(energy) &
    !$omp shared(mol, self, c6, trans, cutoff2, r4r2) private(iat, jat, izp, jzp, &
-   !$omp& jtr, vec, r2, r0ij, rrij, c6ij, t6, t8, edisp, dE)
+   !$omp& jtr, vec, r2, r0ij, rrij, c6ij, t6, t8, edisp, dE, c8s, rs, r0s)
    do iat = 1, mol%nat
       izp = mol%id(iat)
       do jat = 1, iat
@@ -389,6 +435,10 @@ subroutine get_pairwise_dispersion2(self, mol, trans, cutoff, rvdw, r4r2, c6, en
 
             dE = -c6ij*edisp * 0.5_wp
 
+            rs(jat, iat) = sqrt(r2)
+            c8s(jat, iat)  = rrij * c6ij
+            r0s(jat, iat) = r0ij
+
             !$omp atomic
             energy(jat, iat) = energy(jat, iat) + dE
             if (iat /= jat) then
@@ -398,6 +448,19 @@ subroutine get_pairwise_dispersion2(self, mol, trans, cutoff, rvdw, r4r2, c6, en
          end do
       end do
    end do
+   INQUIRE(file="d3data.json", EXIST=file_exists)
+   if (file_exists) then
+        open (unit= 92, file="d3data.json", status="old")
+        close (92, status="delete")
+    end if
+   open (unit = 92, file = "d3data.json", status="new")
+   write(92, *) "{"
+   call print_values_wp(c6, 'c6s', 1, 92)
+   call print_values_wp(c8s, 'c8s', 1, 92)
+   call print_values_wp(r0s, 'r0s', 1, 92)
+   call print_values_wp(rs, 'rs', 1, 92)
+   write(92, *) "}"
+   close(92)
 
 end subroutine get_pairwise_dispersion2
 
